@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include "TicketToRideAPI.h"
 
-
 int main(){
 
 	char* serverName = "li1417-56.members.linode.com";
@@ -26,6 +25,47 @@ int main(){
 	t_color cards[4];
 
 	getMap(tracks,faceUp,cards);
+	printMap();
+
+	t_move move;
+	t_return_code play = NORMAL_MOVE;
+	int replay = 0;
+	t_color card;
+
+	int turn = 1;
+	while(play == NORMAL_MOVE){
+		printf("Tour n° %d:\n", turn);
+
+		printf("Je joue... \n");
+		play = drawBlindCard(&card);
+		if(play == NORMAL_MOVE){
+			printf("...je rejoue...\n");
+			play = drawBlindCard(&card);
+		}
+		printf("...j'ai terminé\n");
+		/*On affiche n'affiche pas la map si la partie est fini pour éviter le message d'erreur suivant: "Error: The server does not acknowledge, but answered: Bad protocol, should send 'WAIT_GAME %s' command" */
+		if(play == NORMAL_MOVE){
+			printMap();				
+		}
+			if(play == NORMAL_MOVE){
+				printf("L'ordi joue: loading...\n");
+				play = getMove(&move,&replay);
+			}
+			/*L'ordinateur rejoue selon la valeur du booléen replay et si le mouvement precedent n'engendre pas la fin de la partie*/
+			while((replay) && (play == NORMAL_MOVE) ){
+				printf("...l'ordi rejoue...\n");
+				play = getMove(&move,&replay);
+			}
+			printf("...l'ordi a terminé.\n");
+
+			/*On affiche n'affiche pas la map si la partie est fini pour éviter le message d'erreur suivant: "Error: The server does not acknowledge, but answered: Bad protocol, should send 'WAIT_GAME %s' command" */
+			if(play == NORMAL_MOVE){
+				printMap();				
+			}
+
+		turn++;
+	}
+	printf("Partie terminé.\n");
 
 	printf("Déconnexion du serveur...\n");
 	closeConnection();
