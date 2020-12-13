@@ -1,7 +1,7 @@
 game: game.o clientAPI.o TicketToRideAPI.o
 	gcc -Wall -o game game.o clientAPI.o TicketToRideAPI.o
 
-game.o: game.c clientAPI.h TicketToRideAPI.h
+game.o: game.c game.h clientAPI.h TicketToRideAPI.h
 	gcc -Wall -c game.c
 
 clientAPI.o: clientAPI.c clientAPI.h

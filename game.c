@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "TicketToRideAPI.h"
+#include "game.h"
 
 int main(){
 
@@ -12,19 +13,20 @@ int main(){
 	connectToServer(serverName,port,name);
 	printf("Connexion au serveur réussie x)\n");
 
+	t_gameboard gameboard;
+	t_game game;
+
+
 	char gameType[100] = "TRAINING DO_NOTHING timeout=10 start=0 map=USA";
     char gameName[20] = "Mohammeds_bot";
-	int nbCities;
-	int nbTracks;
 
-	waitForT2RGame(gameType,gameName,&nbCities,&nbTracks);
+	waitForT2RGame(gameType,gameName,&gameboard.nbCities,&gameboard.nbTracks);
 	printf("Données récupérées !\n");
 
-	int* tracks = (int*) malloc(5*nbTracks*sizeof(int));
-	t_color faceUp[5];
+	gameboard.tracks = (int*) malloc(5*gameboard.nbTracks*sizeof(int));
 	t_color cards[4];
 
-	getMap(tracks,faceUp,cards);
+	getMap(gameboard.tracks,game.faceUp,cards);
 	printMap();
 
 	t_move move;
