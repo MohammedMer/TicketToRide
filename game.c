@@ -13,20 +13,79 @@ int main(){
 	connectToServer(serverName,port,name);
 	printf("Connexion au serveur réussie x)\n");
 
-	t_gameboard gameboard;
+
+	/* Création de la partie, de la carte, des joueurs */
+
 	t_game game;
+	/* Je commence la partie */
+
+
+	void initGame(t_game game,nbLocomotives,nbCards){
+		game.curentPlayer = 1;
+		game.PlayerId = 1;
+
+		game.players[1].nbLocomotives = 45;
+		game.players[2].nbLocomotives = 45;
+
+		game.players[1].nbCards = 4;
+		game.players[2].nbCards = 4;
+	/*
+		game.players[1].nbCardsType[0->8];
+		game.players[2].nbCardsType[0->8&];
+	*/
+		game.players[1].nbObjectives = 0;
+		game.players[2].nbObjectives = 0;
+
+		ChooseObjectives(int objectiveCards[3]);
+
+		drawCard(t_color card, t_color deck[5]);
+	}
+
+	initGame(game,45,);
+
+
+	t_return_code moveChoice(t_game game){
+
+		printf("Que veux tu faire ?\n");
+		printf("   Prendre:\n");
+		printf("\t 1: possession d'une route\n");
+		printf("\t 2: une carte de la pioche\n");
+		printf("\t 3: une carte face visible\n");
+		printf("\t 4: une des cartes objectifs\n");
+
+		int choice;
+		scanf("%d",&choice);
+
+		switch(choice){
+			case 1:
+				return claimRoute(int city1, int city2, int color, int nbLocomotives);
+			case 2:
+				return drawBlindCard(t_color* card);
+			case 3:
+				return drawCard(t_color card, t_color deck[5]);
+			case 4:
+				return drawObjectives(&(game.playeur.objectives[game.playeur.nbObjectives]));
+		}
+
+	}
+
+	moveChoice(game);
 
 
 	char gameType[100] = "TRAINING DO_NOTHING timeout=10 start=0 map=USA";
     char gameName[20] = "Mohammeds_bot";
 
-	waitForT2RGame(gameType,gameName,&gameboard.nbCities,&gameboard.nbTracks);
+    /* initialisation des données de la partie */
+
+
+	waitForT2RGame(gameType,gameName,&game.gameboard.nbCities,&game.gameboard.nbTracks);
 	printf("Données récupérées !\n");
 
-	gameboard.tracks = (int*) malloc(5*gameboard.nbTracks*sizeof(int));
+	game.gameboard.tracks = (int*) malloc(5*game.gameboard.nbTracks*sizeof(int));
 	t_color cards[4];
 
-	getMap(gameboard.tracks,game.faceUp,cards);
+
+	getMap(game.gameboard.tracks,game.faceUp,cards);
 	printMap();
 
 	t_move move;
