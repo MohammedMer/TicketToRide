@@ -184,10 +184,10 @@ int getMap(int* tracks, t_color faceUp[5], t_color cards[4])
 	}
 
 	/* get the 5 face up cards */
-	sscanf(p, "%d %d %d %d %d %n", faceUp, faceUp+1, faceUp+2, faceUp+3, faceUp+4, &nbchar);
+	sscanf(p, "%d %d %d %d %d %n", (int*)faceUp, (int*)faceUp+1, (int*)faceUp+2, (int*)faceUp+3, (int*)faceUp+4, &nbchar);
 	p += nbchar;
 	/* get the 4 initial cards */
-	sscanf(p, "%d %d %d %d", cards, cards+1, cards+2, cards+3);
+	sscanf(p, "%d %d %d %d", (int*)cards, (int*)cards+1, (int*)cards+2, (int*)cards+3);
 
     return ret;
 }
@@ -220,16 +220,16 @@ t_return_code getMove(t_move* move, int* replay)
 
     /* extract result */
 	if (ret == NORMAL_MOVE) {
-		sscanf(moveStr, "%d%n", &move->type, &nbchar);
+		sscanf(moveStr, "%d%n", (int*) &move->type, &nbchar);
 		p = moveStr + nbchar;
 		if (move->type == CLAIM_ROUTE) {
-			sscanf(p, "%d %d %d %d", &move->claimRoute.city1, &move->claimRoute.city2, &move->claimRoute.color, &move->claimRoute.nbLocomotives);
+			sscanf(p, "%d %d %d %d", &move->claimRoute.city1, &move->claimRoute.city2, (int*)&move->claimRoute.color, &move->claimRoute.nbLocomotives);
 			*replay = 0;
 		}
 		else if (move->type == DRAW_CARD) {
-			sscanf(msg, "%d %d %d %d %d %d %d", replay, &move->drawCard.card, move->drawCard.faceUp,
-				   move->drawCard.faceUp + 1,
-				   move->drawCard.faceUp + 2, move->drawCard.faceUp + 3, move->drawCard.faceUp + 4);
+			sscanf(msg, "%d %d %d %d %d %d %d", replay, (int*) &move->drawCard.card, (int*) move->drawCard.faceUp,
+				   (int*)move->drawCard.faceUp + 1,
+				   (int*)move->drawCard.faceUp + 2, (int*)move->drawCard.faceUp + 3, (int*)move->drawCard.faceUp + 4);
 		}
 		else if (move->type == DRAW_BLIND_CARD){
 			sscanf(msg, "%d", replay);
@@ -257,7 +257,7 @@ t_return_code getMove(t_move* move, int* replay)
  */
 t_return_code claimRoute(int city1, int city2, int color, int nbLocomotives){
 	char msg[256];
-	char answer[MAX_GET_MOVE];
+	char answer[MAX_MESSAGE];
 	sprintf(msg, "1 %d %d %d %d", city1, city2, color, nbLocomotives);
 	return sendCGSMove(__FUNCTION__, msg, answer);
 }
@@ -272,7 +272,8 @@ t_return_code drawBlindCard(t_color* card){
 	/* send message */
 	t_return_code ret = sendCGSMove(__FUNCTION__, "2", answer);
 	/* get card drawn */
-	sscanf(answer, "%d", card);
+	if (ret == NORMAL_MOVE)
+		sscanf(answer, "%d", (int*)card);
 
 	return ret;
 }
@@ -291,7 +292,8 @@ t_return_code drawCard(t_color card, t_color deck[5]){
 	sprintf(msg, "3 %d", card);
 	t_return_code ret = sendCGSMove(__FUNCTION__, msg, answer);
 	/* get the new deck */
-	sscanf(answer, "%d %d %d %d %d", deck, deck+1, deck+2, deck+3, deck+4);
+	if (ret == NORMAL_MOVE)
+		sscanf(answer, "%d %d %d %d %d", (int*)deck, (int*)deck+1, (int*)deck+2, (int*)deck+3, (int*)deck+4);
 
 	return ret;
 }
@@ -309,10 +311,12 @@ t_return_code drawObjectives(t_objective obj[3]){
 	/* send message */
 	t_return_code ret = sendCGSMove(__FUNCTION__, "4", answer);
 	/* get the new obj */
-	t_objective* p = obj;
-	for(int i=0;i<3;i++, p++) {
-		sscanf(str, "%d %d %d%n", &p->city1, &p->city2, &p->score, &nbchar);
-		str += nbchar;
+	if (ret == NORMAL_MOVE) {
+		t_objective *p = obj;
+		for (int i = 0; i < 3; i++, p++) {
+			sscanf(str, "%d %d %d%n", &p->city1, &p->city2, &p->score, &nbchar);
+			str += nbchar;
+		}
 	}
 
 	return ret;
@@ -328,7 +332,7 @@ t_return_code drawObjectives(t_objective obj[3]){
  */
 t_return_code chooseObjectives(int objectiveCards[3]){
 	char msg[MAX_GET_MOVE];
-	char answer[MAX_GET_MOVE];
+	char answer[MAX_MESSAGE];
 	/* send message */
 	sprintf(msg, "5 %d %d %d", objectiveCards[0], objectiveCards[1], objectiveCards[2]);
 	t_return_code ret = sendCGSMove(__FUNCTION__, msg, answer);
