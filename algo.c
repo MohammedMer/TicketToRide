@@ -77,18 +77,18 @@ int printTrack(int* Prev, int* ShortestTrack, int src, int dest){
 	return i;
 }
 
-int maxToMin(int* desiredColor, int* priorityOrder, int stop){
+int maxToMin(int* desiredColor, int* priorityOrder, int arrayLenght){
 	int max = desiredColor[0];
-	for (int i=1; i<10; i++){
+	for (int i=0; i< arrayLenght; i++){
 		if (desiredColor[i] > max)
 			max = desiredColor[i];
 	}
 
 	priorityOrder[0] = max;
-	stop--;
+	arrayLenght--;
 
-	if(stop!=0)
-		return maxToMin(&desiredColor[1], &priorityOrder[1],stop);
+	if(arrayLenght!=0)
+		return maxToMin(&desiredColor[1], &priorityOrder[1],arrayLenght);
 	else
 		return 0;
 }

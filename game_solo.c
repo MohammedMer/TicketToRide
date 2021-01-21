@@ -10,7 +10,7 @@ int main(){
 
 	char* serverName = "li1417-56.members.linode.com";
 	unsigned int port = 5678;
-	char gameType[100] = "TRAINING DO_NOTHING timeout=1000 start=0 map=USA";
+	char gameType[100] = "TRAINING DO_NOTHING timeout=1000 start=0 map=";
 
 	t_return_code movePlayed = NORMAL_MOVE; /* save retCode */
 	int replay = 0;			/* boolean, tells if the player replays */

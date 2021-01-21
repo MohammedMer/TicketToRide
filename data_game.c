@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <limits.h>
 
 #include "TicketToRideAPI.h"
@@ -14,7 +15,7 @@ void initGame(t_game* game, char* serverName, unsigned int port, char* gameType)
 	printf("Enter the player's name: \n\t");
 	scanf("%s", game->players[0].name);
 
-	char answer[1];
+	char* answer = (char*) malloc(sizeof(char));
 	printf("Do you want to play vs a bot ? : enter 'y' or 'n' \n\t");
 	scanf("%s", answer);
 
@@ -23,12 +24,38 @@ void initGame(t_game* game, char* serverName, unsigned int port, char* gameType)
 		scanf("%s", game->gameName);
 	}
 
+	int choice;
+	char* nameMap = (char*) malloc(15*sizeof(char));
+	printf("Choose the name of the map by typing the number linked to the map :\n");
+	printf("\t1. map USA\n");
+	printf("\t2. map Europe\n");
+	printf("\t3. map small\n");
 
-	char gameName[20] = "tesT_bot";
+	scanf("%d", &choice);
+
+	switch(choice){
+		case(1):
+			nameMap = "USA";
+			game->players[0].nbLocomotives = 45;
+			game->players[1].nbLocomotives = 45;
+			break;
+		case(2):
+			nameMap = "Europe";
+			game->players[0].nbLocomotives = 45;
+			game->players[1].nbLocomotives = 45;
+			break;
+		case(3):
+			nameMap = "small";
+			game->players[0].nbLocomotives = 15;
+			game->players[1].nbLocomotives = 15;
+			break;
+		default:
+			break;
+	}
 
 	connectToServer(serverName,port, game->players[0].name);
 	/* wait for a game and get the map */
-	waitForT2RGame(gameType,gameName,&(game->gameboard.nbCities),&(game->gameboard.nbTracks));
+	waitForT2RGame(strcat(gameType,nameMap),game->gameName,&(game->gameboard.nbCities),&(game->gameboard.nbTracks));
 	printf("Data collected !\n");
 }
 
@@ -74,9 +101,11 @@ void initMap(t_game* game, t_color* ourCards){
 /* initialization of players informations */
 void players(t_game* game, t_color ourCards[4]){
 
+	/* I decided to initialize the number of locomotive just after the choose of the map */
+	/* 
 	game->players[0].nbLocomotives = 45;
 	game->players[1].nbLocomotives = 45;
-
+	*/
 	game->players[0].nbCards = 4;
 	game->players[1].nbCards = 4;
 

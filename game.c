@@ -14,7 +14,7 @@ int main(){
 
 	char* serverName = "li1417-56.members.linode.com";
 	unsigned int port = 5678;
-	char gameType[100] = "TRAINING DO_NOTHING timeout=1000 start=0 map=USA";
+	char gameType[100] = "TRAINING DO_NOTHING timeout=1000 start=0 map=";
 
 	t_return_code movePlayed = NORMAL_MOVE; /* save retCode */
 	int replay = 0;			/* boolean, tells if the player replays */
@@ -69,9 +69,10 @@ int main(){
 
 
 	/*variables created to chose a face up card*/
-	int* desiredColor = (int*) malloc(10*sizeof(int));
-	int* priorityOrder = (int*) malloc(10*sizeof(int)); /*array containing colors sorted by by priority (number of the card color we need) */
-	int all; /* counter from 0 to 10  */
+	int arrayLenght = 10;
+	int* desiredColor = (int*) malloc(arrayLenght*sizeof(int));
+	int* priorityOrder = (int*) malloc(arrayLenght*sizeof(int)); /*array containing colors sorted by by priority (number of the card color we need) */
+	int all = 0; /* counter from 0 to 10  */
 
 	while (movePlayed == NORMAL_MOVE){
 		printf("Turn n° %d:\n", turn);
@@ -107,14 +108,17 @@ int main(){
 				while ((i < game.players[0].nbObjectives) && (nbCardsColor_1 < lengthTrackClaimed) && (nbCardsColor_2 < lengthTrackClaimed)){
 					while ((j < lengthShortestTrackObjectives[i] - 1) && (nbCardsColor_1 < lengthTrackClaimed) && (nbCardsColor_2 < lengthTrackClaimed)){
 
+						/* we take 2 cities side-by-side placed that are a part of the shortest track of the objective number i */ 
 						city1 = ShortestTrack[i*N+j];
 						city2 = ShortestTrack[i*N+j+1];
+					/* test
 					printf(" %d (", city1);
 					printCity(city1);
 					printf(") -> (");
 					printCity(city2);
 					printf(") %d \n", city2);
-
+					*/
+						/* if it's works lengthTrackClaimed = 1 because city1 and city2 are side-by-side placed  */
 						lengthTrackClaimed = game.gameboard.tracks[ city1 ][ city2 ].lengthTrack;
 
 						claimedColor_1 = game.gameboard.tracks[ city1 ][ city2 ].colorTrack_1;
@@ -123,6 +127,7 @@ int main(){
 						nbCardsColor_1 = game.players[0].nbCardsType[ claimedColor_1 ];
 						nbCardsColor_2 = game.players[0].nbCardsType[ claimedColor_2 ];
 
+						/* gets colors card we need to draw card */
 						desiredColor[claimedColor_1]+= nbCardsColor_1;
 						desiredColor[claimedColor_2]+= nbCardsColor_2;
 						
@@ -135,7 +140,7 @@ int main(){
 					move.type = CLAIM_ROUTE;
 					claimRoute(city1, 
 							   city2, 
-							   game.gameboard.tracks[ city1 ][ city2 ].colorTrack_1,
+							   claimedColor_1,
 							   move.claimRoute.nbLocomotives);
 					/*
 					printf("doing objective :");
@@ -151,7 +156,7 @@ int main(){
 					move.type = CLAIM_ROUTE;
 					claimRoute(city1, 
 							   city2, 
-							   game.gameboard.tracks[ city1 ][ city2 ].colorTrack_2,
+							   claimedColor_2,
 							   move.claimRoute.nbLocomotives);
 					/*
 					printf("doing objective :");
@@ -164,13 +169,13 @@ int main(){
 				}
 				else{
 //printf("Point 4:\n");	
-					maxToMin(desiredColor, priorityOrder,10);
+					maxToMin(desiredColor, priorityOrder,arrayLenght);
 					for(int i=0; i < 5; i++){	
 						all = 0;
-						while ((game.faceUp[i] != priorityOrder[all]) && (all != 10)){
+						while ((game.faceUp[i] != priorityOrder[all]) && (all != arrayLenght)){
 							all++;
 						}
-						if (all != 10){
+						if (all != arrayLenght){
 	//printf("Point 4.a:\n");
 							move.type = DRAW_CARD;
 							move.drawCard.card = priorityOrder[all];
@@ -226,13 +231,13 @@ int main(){
 				}
 				else{
 //printf("Point 11:\n");
-				maxToMin(desiredColor, priorityOrder,10);
+				maxToMin(desiredColor, priorityOrder, arrayLenght);
 				for(int i=0; i < 5; i++){	
 					all = 0;
-					while ((game.faceUp[i] != priorityOrder[all]) && (all != 10)){
+					while ((game.faceUp[i] != priorityOrder[all]) && (all != arrayLenght)){
 						all++;
 					}
-					if (all != 10){
+					if (all != arrayLenght){
 //printf("Point 11.a:\n");
 						move.type = DRAW_CARD;
 						move.drawCard.card = priorityOrder[all];
@@ -254,7 +259,7 @@ int main(){
 			printf("...I am done\n");
 			
 		}
-		else{printf("11\n");
+		else{
 			/* when the opponent play */
 			if(movePlayed == NORMAL_MOVE){
 				printf("The opponent play: loading...\n");
