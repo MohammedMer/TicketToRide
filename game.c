@@ -1,134 +1,296 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <limits.h>
+
 #include "TicketToRideAPI.h"
 #include "game.h"
+#include "data_game.h"
+#include "move.h"
+#include "algo.h"
+
+#define N  NB_MAX_CITIES
 
 int main(){
 
 	char* serverName = "li1417-56.members.linode.com";
-	unsigned int port = 1234;
-	char* name = (char*) malloc(50*sizeof(char));
-	name = "Mohammeds_bot";
+	unsigned int port = 5678;
+	char gameType[100] = "TRAINING DO_NOTHING timeout=1000 start=0 map=USA";
 
-	connectToServer(serverName,port,name);
-	printf("Connexion au serveur réussie x)\n");
+	t_return_code movePlayed = NORMAL_MOVE; /* save retCode */
+	int replay = 0;			/* boolean, tells if the player replays */
+	t_move move;			/* current move */
+	t_color lastMove = NONE;	/* last Card taken we need to replay else NONE */
+	t_color ourCards[4];	/* cards owned */
+	t_objective obj[3];
+	int turn = 1;	/* turn's number */
 
-
-	/* Création de la partie, de la carte, des joueurs */
-
+	/* variable containing all game's parameters */
 	t_game game;
-	/* Je commence la partie */
 
+	/* game's creation */
+	initGame(&game, serverName, port, gameType);
 
-	void initGame(t_game game,nbLocomotives,nbCards){
-		game.curentPlayer = 1;
-		game.PlayerId = 1;
+	/* create map and take game's informations */
+	initMap(&game, ourCards);
 
-		game.players[1].nbLocomotives = 45;
-		game.players[2].nbLocomotives = 45;
+	/* take player's informations */
+	players(&game, ourCards);
 
-		game.players[1].nbCards = 4;
-		game.players[2].nbCards = 4;
-	/*
-		game.players[1].nbCardsType[0->8];
-		game.players[2].nbCardsType[0->8&];
-	*/
-		game.players[1].nbObjectives = 0;
-		game.players[2].nbObjectives = 0;
+	/* print informations of the curent game */
+	currentGame(&game);
 
-		ChooseObjectives(int objectiveCards[3]);
-
-		drawCard(t_color card, t_color deck[5]);
+	
+	/* Graph initialization */
+	int G[N][N];
+	for(int i=0; i < N; i++){
+		for(int j=0; j < N; j++){
+			
+			if (game.gameboard.tracks[i][j].lengthTrack != 0){
+				G[i][j] = game.gameboard.tracks[i][j].lengthTrack;
+			}
+			else{
+				G[i][j]	= INT_MAX;
+			}
+		}
 	}
 
-	initGame(game,45,);
+	/* array in wich D[i] represents the shortest distance between the cities src and i */
+	int* D = (int*) malloc(N*sizeof(int));
+	/* array in wich Prev[i] represents the previous city from the source */
+	int* Prev = (int*) malloc(N*sizeof(int));
+
+	int nbObjectivesListed = 0;
+
+	int* ShortestTrack = (int*) malloc(20*N*sizeof(int));
+	/* this array contains the number of cities of the shorter Track for each objectives */
+	int* lengthShortestTrackObjectives = (int*) malloc(20*sizeof(int)); 
+	int nbCitiesShortestTrackObjectives = 0;
+	int nbElemShortestTrack = 0;
 
 
-	t_return_code moveChoice(t_game game){
+	/*variables created to chose a face up card*/
+	int* desiredColor = (int*) malloc(10*sizeof(int));
+	int* priorityOrder = (int*) malloc(10*sizeof(int)); /*array containing colors sorted by by priority (number of the card color we need) */
+	int all; /* counter from 0 to 10  */
 
-		printf("Que veux tu faire ?\n");
-		printf("   Prendre:\n");
-		printf("\t 1: possession d'une route\n");
-		printf("\t 2: une carte de la pioche\n");
-		printf("\t 3: une carte face visible\n");
-		printf("\t 4: une des cartes objectifs\n");
+	while (movePlayed == NORMAL_MOVE){
+		printf("Turn n° %d:\n", turn);
 
-		int choice;
-		scanf("%d",&choice);
+		/* when we play */
+		if (game.curentPlayer == 0){
+			printMap();
+			printf("I play... \n");
+			currentGame(&game);
 
-		switch(choice){
-			case 1:
-				return claimRoute(int city1, int city2, int color, int nbLocomotives);
-			case 2:
-				return drawBlindCard(t_color* card);
-			case 3:
-				return drawCard(t_color card, t_color deck[5]);
-			case 4:
-				return drawObjectives(&(game.playeur.objectives[game.playeur.nbObjectives]));
+			if(turn == 1){
+//printf("Point 1:\n");				
+				move.type = DRAW_OBJECTIVES;
+			}
+			else if (game.players[0].nbObjectives == 0){
+//printf("Point 2:\n");
+				move.chooseObjectives.chosen[ nbObjectivesListed ] = 1;
+				
+				move.type = CHOOSE_OBJECTIVES;
+				chooseObjectives(move.chooseObjectives.chosen);
+			}
+			else {
+//printf("Point 3:\n");				
+				int city1;
+				int city2;			
+				int claimedColor_1;
+				int claimedColor_2;
+				int nbCardsColor_1;
+				int nbCardsColor_2;
+				int lengthTrackClaimed;
+
+				int i=0,j=0;
+				while ((i < game.players[0].nbObjectives) && (nbCardsColor_1 < lengthTrackClaimed) && (nbCardsColor_2 < lengthTrackClaimed)){
+					while ((j < lengthShortestTrackObjectives[i] - 1) && (nbCardsColor_1 < lengthTrackClaimed) && (nbCardsColor_2 < lengthTrackClaimed)){
+
+						city1 = ShortestTrack[i*N+j];
+						city2 = ShortestTrack[i*N+j+1];
+					printf(" %d (", city1);
+					printCity(city1);
+					printf(") -> (");
+					printCity(city2);
+					printf(") %d \n", city2);
+
+						lengthTrackClaimed = game.gameboard.tracks[ city1 ][ city2 ].lengthTrack;
+
+						claimedColor_1 = game.gameboard.tracks[ city1 ][ city2 ].colorTrack_1;
+						claimedColor_2 = game.gameboard.tracks[ city1 ][ city2 ].colorTrack_2;
+
+						nbCardsColor_1 = game.players[0].nbCardsType[ claimedColor_1 ];
+						nbCardsColor_2 = game.players[0].nbCardsType[ claimedColor_2 ];
+
+						desiredColor[claimedColor_1]+= nbCardsColor_1;
+						desiredColor[claimedColor_2]+= nbCardsColor_2;
+						
+						i++;
+						j++;
+					}
+				}
+				if (nbCardsColor_1 >= lengthTrackClaimed){
+
+					move.type = CLAIM_ROUTE;
+					claimRoute(city1, 
+							   city2, 
+							   game.gameboard.tracks[ city1 ][ city2 ].colorTrack_1,
+							   move.claimRoute.nbLocomotives);
+					/*
+					printf("doing objective :");
+					printf(" %d (", city1);
+					printCity(city1);
+					printf(") -> (");
+					printCity(city2);
+					printf(") %d \n", city2);
+					*/
+				}
+				else if (nbCardsColor_2 >= lengthTrackClaimed){
+
+					move.type = CLAIM_ROUTE;
+					claimRoute(city1, 
+							   city2, 
+							   game.gameboard.tracks[ city1 ][ city2 ].colorTrack_2,
+							   move.claimRoute.nbLocomotives);
+					/*
+					printf("doing objective :");
+					printf(" %d (", city1);
+					printCity(city1);
+					printf(") -> (");
+					printCity(city2);
+					printf(") %d \n", city2);
+					*/
+				}
+				else{
+//printf("Point 4:\n");	
+					maxToMin(desiredColor, priorityOrder,10);
+					for(int i=0; i < 5; i++){	
+						all = 0;
+						while ((game.faceUp[i] != priorityOrder[all]) && (all != 10)){
+							all++;
+						}
+						if (all != 10){
+	//printf("Point 4.a:\n");
+							move.type = DRAW_CARD;
+							move.drawCard.card = priorityOrder[all];
+							desiredColor[ priorityOrder[all] ]--;
+						}
+						else{
+	//printf("Point 4.b:\n");
+							move.type = DRAW_BLIND_CARD;
+						}
+					}
+				}
+			}
+			
+//printf("Point 5:\n");
+			replay = needReplay(&move, lastMove);
+			movePlayed = playOurMove(&move, &lastMove, obj);
+			updateGame(&game, &move, obj);
+//printf("Point 6:\n");
+
+
+			
+				/* finding the shortest track for each new objectives, so when (nbObjectivesListed - game.players[0].nbObjectives) > 0 */ 
+				for (int i = nbObjectivesListed; i < game.players[0].nbObjectives; i++){
+//printf("Point 7:\n");
+			
+					findShortestTrack(&game, game.players[0].objectives[i].city1, game.players[0].objectives[i].city2, G, D, Prev);
+
+			
+					/* we save array "Prev" generated in "ShortestTrack" and the number of elements contained in Prev */
+					printf("Shortest Track for objective number %d:",i+1);
+					nbCitiesShortestTrackObjectives = printTrack(Prev, &ShortestTrack[nbObjectivesListed*N], game.players[0].objectives[i].city1, game.players[0].objectives[i].city2);
+					
+					lengthShortestTrackObjectives[i] = nbCitiesShortestTrackObjectives;
+
+					nbElemShortestTrack+= nbCitiesShortestTrackObjectives;
+					nbObjectivesListed++;
+				}
+//printf("Point 8:\n");
+			
+			if((replay) && (movePlayed == NORMAL_MOVE)){
+//printf("Point 9:\n");				
+				//printMap();
+				printf("...I play again...\n");
+				currentGame(&game);
+
+
+				if( move.type == DRAW_OBJECTIVES){
+//printf("Point 10:\n");					
+					for(int i=0; i < 3; i++){
+						move.chooseObjectives.chosen[i] = 1;
+					}
+					move.type = CHOOSE_OBJECTIVES;
+				}
+				else{
+//printf("Point 11:\n");
+				maxToMin(desiredColor, priorityOrder,10);
+				for(int i=0; i < 5; i++){	
+					all = 0;
+					while ((game.faceUp[i] != priorityOrder[all]) && (all != 10)){
+						all++;
+					}
+					if (all != 10){
+//printf("Point 11.a:\n");
+						move.type = DRAW_CARD;
+						move.drawCard.card = priorityOrder[all];
+						desiredColor[ priorityOrder[all] ]--;
+					}
+					else{
+//printf("Point 11.b:\n");
+						move.type = DRAW_BLIND_CARD;
+					}
+				}
+			}
+//printf("Point 12:\n");
+				replay = needReplay(&move, lastMove);
+				movePlayed = playOurMove(&move, &lastMove, obj);
+				updateGame(&game, &move, obj);
+//printf("Point 13:\n");
+
+			}
+			printf("...I am done\n");
+			
+		}
+		else{printf("11\n");
+			/* when the opponent play */
+			if(movePlayed == NORMAL_MOVE){
+				printf("The opponent play: loading...\n");
+				currentGame(&game);
+
+				movePlayed = getMove(&move,&replay);
+				updateGame(&game, &move, obj);
+			}
+
+			while((replay) && (movePlayed == NORMAL_MOVE)){
+				printf("...the opponent play again...\n");
+				currentGame(&game);
+
+				movePlayed = getMove(&move,&replay);
+				updateGame(&game, &move, obj);
+			}
+			printf("...task achived.\n");
+		}
+
+		/* change player */
+		if (movePlayed == NORMAL_MOVE && !replay){
+			game.curentPlayer = !game.curentPlayer;
+			turn++;
 		}
 
 	}
+	printf("Game finished.\n");
 
-	moveChoice(game);
-
-
-	char gameType[100] = "TRAINING DO_NOTHING timeout=10 start=0 map=USA";
-    char gameName[20] = "Mohammeds_bot";
-
-    /* initialisation des données de la partie */
-
-
-	waitForT2RGame(gameType,gameName,&game.gameboard.nbCities,&game.gameboard.nbTracks);
-	printf("Données récupérées !\n");
-
-	game.gameboard.tracks = (int*) malloc(5*game.gameboard.nbTracks*sizeof(int));
-	t_color cards[4];
-
-
-	getMap(game.gameboard.tracks,game.faceUp,cards);
-	printMap();
-
-	t_move move;
-	t_return_code play = NORMAL_MOVE;
-	int replay = 0;
-	t_color card;
-
-	int turn = 1;
-	while(play == NORMAL_MOVE){
-		printf("Tour n° %d:\n", turn);
-
-		printf("Je joue... \n");
-		play = drawBlindCard(&card);
-		if(play == NORMAL_MOVE){
-			printf("...je rejoue...\n");
-			play = drawBlindCard(&card);
-		}
-		printf("...j'ai terminé\n");
-		/*On affiche n'affiche pas la map si la partie est fini pour éviter le message d'erreur suivant: "Error: The server does not acknowledge, but answered: Bad protocol, should send 'WAIT_GAME %s' command" */
-		if(play == NORMAL_MOVE){
-			printMap();				
-		}
-			if(play == NORMAL_MOVE){
-				printf("L'ordi joue: loading...\n");
-				play = getMove(&move,&replay);
-			}
-			/*L'ordinateur rejoue selon la valeur du booléen replay et si le mouvement precedent n'engendre pas la fin de la partie*/
-			while((replay) && (play == NORMAL_MOVE) ){
-				printf("...l'ordi rejoue...\n");
-				play = getMove(&move,&replay);
-			}
-			printf("...l'ordi a terminé.\n");
-
-			/*On affiche n'affiche pas la map si la partie est fini pour éviter le message d'erreur suivant: "Error: The server does not acknowledge, but answered: Bad protocol, should send 'WAIT_GAME %s' command" */
-			if(play == NORMAL_MOVE){
-				printMap();				
-			}
-
-		turn++;
+	if ((movePlayed == WINNING_MOVE && movePlayed == 0) || (movePlayed == LOOSING_MOVE && game.playerId == 1)){
+		printf("We learn more when you lose than when you win 🙃\n");
 	}
-	printf("Partie terminé.\n");
+	else{
+		printf("The opponent has exploited a vulnerability 👀️\n");
+	}
 
-	printf("Déconnexion du serveur...\n");
+	printf("Disconnection of the server...\n");
 	closeConnection();
 
 	return 0;
